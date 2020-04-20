@@ -26,5 +26,5 @@
 运行 `python test_model.py`
 即可测试网络推理效果
 ## License
-This project is released under the Apache License. Some parts are borrowed from [fizyr/keras-retinanet](https://github.com/fizyr/keras-retinanet)
+This project is released under the Apache License. Some parts are borrowed from [xuannianz/keras-CenterNet](https://github.com/xuannianz/keras-CenterNet)
 and [xingyizhou/CenterNet](https://github.com/xingyizhou/CenterNet). Please take their licenses into consideration too when use this project.
