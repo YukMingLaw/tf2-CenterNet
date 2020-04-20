@@ -70,7 +70,6 @@ def evaluate_batch_item(batch_item_detections, num_classes, max_objects_per_clas
                                     pad)
     return batch_item_detections
 
-
 def decode(hm, wh, reg, max_objects=100, nms=False, flip_test=False, num_classes=1, score_threshold=0.1):
     if flip_test:
         hm = (hm[0:1] + hm[1:2, :, ::-1]) / 2
@@ -103,7 +102,6 @@ def decode(hm, wh, reg, max_objects=100, nms=False, flip_test=False, num_classes
                                elems=[detections],
                                dtype=tf.float32)
     return detections
-
 
 def centernet(num_classes, backbone='resnet50', input_size=512, max_objects=100, score_threshold=0.1,
               nms=False,

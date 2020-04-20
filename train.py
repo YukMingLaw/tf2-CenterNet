@@ -155,11 +155,6 @@ def check_args(parsed_args):
             "Batch size ({}) must be equal to or higher than the number of GPUs ({})".format(parsed_args.batch_size,
                                                                                              parsed_args.multi_gpu))
 
-    if parsed_args.num_gpus > 1 and parsed_args.snapshot:
-        raise ValueError(
-            "Multi GPU training ({}) and resuming from snapshots ({}) is not supported.".format(parsed_args.multi_gpu,
-                                                                                                parsed_args.snapshot))
-
     if parsed_args.num_gpus > 1 and not parsed_args.multi_gpu_force:
         raise ValueError(
             "Multi-GPU support is experimental, use at own risk! Run with --multi-gpu-force if you wish to continue.")
@@ -178,18 +173,7 @@ def parse_args(args):
     coco_parser = subparsers.add_parser('coco')
     coco_parser.add_argument('coco_path', help='Path to dataset directory (ie. /tmp/COCO).')
 
-    pascal_parser = subparsers.add_parser('pascal')
-    pascal_parser.add_argument('pascal_path', help='Path to dataset directory (ie. /tmp/VOCdevkit).')
-
-    csv_parser = subparsers.add_parser('csv')
-    csv_parser.add_argument('annotations_path', help='Path to CSV file containing annotations for training.')
-    csv_parser.add_argument('classes_path', help='Path to a CSV file containing class label mapping.')
-    csv_parser.add_argument('--val-annotations-path',
-                            help='Path to CSV file containing annotations for validation (optional).')
-
-    parser.add_argument('--snapshot', help='Resume training from a snapshot.',
-                        default='/home/adam/.keras/models/ResNet-50-model.keras.h5')
-    parser.add_argument('--freeze-backbone', help='Freeze training of backbone layers.', action='store_true')
+    parser.add_argument('--resume', help='Resume training from a snapshot.')
 
     parser.add_argument('--batch-size', help='Size of the batches.', default=4, type=int)
     parser.add_argument('--gpu', help='Id of the GPU to use (as reported by nvidia-smi).')
@@ -204,20 +188,16 @@ def parse_args(args):
     parser.add_argument('--tensorboard-dir', help='Log directory for Tensorboard output',
                         default='logs/{}'.format(today))
     parser.add_argument('--no-snapshots', help='Disable saving snapshots.', dest='snapshots', action='store_false')
-    parser.add_argument('--no-evaluation', help='Disable per epoch evaluation.', dest='evaluation',
-                        action='store_false')
+
     parser.add_argument('--random-transform', help='Randomly transform image and annotations.', action='store_true')
-    parser.add_argument('--input-size', help='Rescale the image so the smallest side is min_side.', type=int,
-                        default=512)
+    parser.add_argument('--input-size', help='Rescale the image so the smallest side is min_side.', type=int,default=512)
     parser.add_argument('--multi-scale', help='Multi-Scale training', default=False, action='store_true')
-    parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss',
-                        action='store_true')
+    parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss',action='store_true')
 
     # Fit generator arguments
     parser.add_argument('--multiprocessing', help='Use multiprocessing in fit_generator.', action='store_true')
     parser.add_argument('--workers', help='Number of generator workers.', type=int, default=1)
-    parser.add_argument('--max-queue-size', help='Queue length for multiprocessing workers in fit_generator.', type=int,
-                        default=10)
+    parser.add_argument('--max-queue-size', help='Queue length for multiprocessing workers in fit_generator.', type=int,default=10)
     print(vars(parser.parse_args(args)))
     return check_args(parser.parse_args(args))
 
@@ -238,17 +218,13 @@ def main(args=None):
     model, prediction_model, debug_model = centernet(num_classes=num_classes, input_size=args.input_size,freeze_bn=False)
 
     # create the model
-    # print('Loading model, this may take a second...')
-    # model.load_weights('save/save_model.h5', by_name=True, skip_mismatch=True)
-
-    # freeze layers
-    # if args.freeze_backbone:
-    #     for i in range(190):
-    #     # for i in range(175):
-    #         model.layers[i].trainable = False
+    print(args.resume)
+    if args.resume:
+        print('Loading model, this may take a second...')
+        model.load_weights(args.resume, by_name=True, skip_mismatch=True)
 
     # compile model
-    model.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-3), loss={'center net_loss': lambda y_true,y_pred:y_pred})
+    model.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-3), loss={'centernet_loss': lambda y_true,y_pred:y_pred})
     # model.compile(optimizer=SGD(lr=1e-5, momentum=0.9, nesterov=True, decay=1e-5),loss={'centernet_loss': lambda y_true, y_pred:y_pred})
 
     # print model summary
@@ -278,7 +254,7 @@ def main(args=None):
         max_queue_size=args.max_queue_size,
         validation_data=validation_generator
     )
-    model.save(os.path.join('save/save_model.h5'))
+
     return 0;
 
 if __name__ == '__main__':
